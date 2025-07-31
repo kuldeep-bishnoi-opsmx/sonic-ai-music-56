@@ -16,6 +16,7 @@ export const useAudioPlayer = () => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!audioRef.current) {
@@ -50,6 +51,11 @@ export const useAudioPlayer = () => {
       audio.removeEventListener('timeupdate', updateProgress);
       audio.removeEventListener('loadedmetadata', updateDuration);
       audio.removeEventListener('ended', handleEnded);
+      // Clean up interval on unmount
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     };
   }, [currentTrack]);
 
@@ -74,11 +80,19 @@ export const useAudioPlayer = () => {
   };
 
   const simulateProgress = () => {
-    const interval = setInterval(() => {
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+    
+    intervalRef.current = setInterval(() => {
       setProgress(prev => {
         const newProgress = prev + 0.5; // Increment by 0.5% every 100ms
         if (newProgress >= 100) {
-          clearInterval(interval);
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
           setIsPlaying(false);
           return 0;
         }
@@ -87,8 +101,6 @@ export const useAudioPlayer = () => {
       
       setCurrentTime(prev => prev + 0.1);
     }, 100);
-
-    return interval;
   };
 
   const togglePlayPause = () => {
@@ -97,6 +109,11 @@ export const useAudioPlayer = () => {
     if (isPlaying) {
       setIsPlaying(false);
       audioRef.current?.pause();
+      // Stop the simulation interval when pausing
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     } else {
       playTrack(currentTrack);
     }
