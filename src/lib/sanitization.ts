@@ -1,12 +1,15 @@
-
 // Input sanitization utilities
 export const sanitizeInput = (input: string): string => {
-  return input
-    .trim()
-    .replace(/[<>]/g, '') // Remove potential HTML tags
-    .replace(/javascript:/gi, '') // Remove javascript: protocol
-    .replace(/on\w+\s*=/gi, '') // Remove event handlers
-    .substring(0, 1000); // Limit length as additional safety
+  // Limit input length before sanitization to avoid truncating sanitized content
+  let sanitized = input.trim();
+  if (sanitized.length > 1000) {
+    sanitized = sanitized.slice(0, 1000);
+  }
+
+  // Only allow a safe subset of characters: alphanumerics, spaces, and basic punctuation
+  sanitized = sanitized.replace(/[^a-zA-Z0-9 \-_.!?&()]/g, '');
+
+  return sanitized;
 };
 
 export const sanitizePlaylistName = (name: string): string => {
